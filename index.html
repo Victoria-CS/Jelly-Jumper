@@ -25,13 +25,9 @@
     font-family: 'Nunito', sans-serif;
   }
 
-  #wrapper {
-    position: relative;
-  }
+  #wrapper { position: relative; }
 
-  canvas {
-    display: block;
-  }
+  canvas { display: block; }
 
   #ui-overlay {
     position: absolute;
@@ -41,7 +37,6 @@
     overflow: hidden;
   }
 
-  /* ── SCORE ── */
   #score-display {
     position: absolute;
     top: 18px; left: 50%;
@@ -53,9 +48,6 @@
     pointer-events: none;
   }
 
-  /* ══════════════════════════════
-     START SCREEN
-  ══════════════════════════════ */
   #start-screen {
     position: absolute; top: 0; left: 0;
     width: 100%; height: 100%;
@@ -82,11 +74,7 @@
       radial-gradient(circle at 80% 85%, rgba(255,255,255,0.35) 0 70px, transparent 71px);
   }
 
-  .bubble-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
+  .bubble-layer { position: absolute; inset: 0; pointer-events: none; }
 
   .bubble {
     position: absolute;
@@ -190,9 +178,6 @@
   .play-btn:hover  { transform: scale(1.06); box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
   .play-btn:active { transform: scale(0.96); }
 
-  /* ══════════════════════════════
-     GAME OVER SCREEN
-  ══════════════════════════════ */
   #over-screen {
     position: absolute; top: 0; left: 0;
     width: 100%; height: 100%;
@@ -241,7 +226,6 @@
   .btn:hover  { transform: scale(1.06); box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
   .btn:active { transform: scale(0.96); }
 
-  /* ── ANIMATIONS ── */
   @keyframes popIn {
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
@@ -259,7 +243,6 @@
   <div id="ui-overlay">
     <div id="score-display" class="hidden">0</div>
 
-    <!-- ══ START SCREEN ══ -->
     <div id="start-screen">
       <div class="bubble-layer">
         <div class="bubble pink b1"></div>
@@ -271,27 +254,22 @@
         <div class="bubble pink b7"></div>
         <div class="bubble blue b8"></div>
       </div>
-
       <div class="candy worm"></div>
       <div class="candy bear"></div>
       <div class="candy heart"></div>
-
       <div class="logo-wrap">
         <img src="images/logo.png" class="logo-img" alt="Jelly Jump Logo">
       </div>
-
       <p class="hint-text">Hold and move</p>
       <button class="play-btn" onclick="startGame()">PLAY</button>
     </div>
 
-    <!-- ══ GAME OVER ══ -->
     <div id="over-screen" class="hidden">
       <h1>Game Over!</h1>
       <p id="final-score">0</p>
       <p id="best-score">Score: 0</p>
       <button class="btn" onclick="startGame()">TRY AGAIN</button>
     </div>
-
   </div>
 </div>
 
@@ -304,34 +282,25 @@ const ctx     = canvas.getContext('2d');
 const wrapper = document.getElementById('wrapper');
 const W = 400, H = 700;
 
-// Под Iphone
-const safeTop    = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat') || '0') || 0;
-const safeBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab') || '0') || 0;
-
 canvas.width  = W;
 canvas.height = H;
 
 function resizeGame() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-
-  // Сохраняем пропорции
   let scale = Math.min(vw / W, vh / H);
   const displayW = Math.round(W * scale);
   const displayH = Math.round(H * scale);
 
   wrapper.style.width  = displayW + 'px';
   wrapper.style.height = displayH + 'px';
+  canvas.style.width   = displayW + 'px';
+  canvas.style.height  = displayH + 'px';
 
-  canvas.style.width  = displayW + 'px';
-  canvas.style.height = displayH + 'px';
-
-  // Не полный экран
   const isFull = displayW >= vw && displayH >= vh;
-  canvas.style.borderRadius = isFull ? '0' : '28px';
+  canvas.style.borderRadius  = isFull ? '0' : '28px';
   wrapper.style.borderRadius = canvas.style.borderRadius;
 
-  // Масштабирование
   canvasScale = scale;
 }
 
@@ -371,15 +340,13 @@ function getAC() {
   return AC;
 }
 
-let musicAudio   = null;
-let musicRunning = false;
+let musicAudio = null, musicRunning = false;
 
 function startMusic() {
   if (musicRunning) return;
   musicRunning = true;
   const audio = new Audio('audio/music.mp3');
-  audio.loop   = true;
-  audio.volume = 0.45;
+  audio.loop = true; audio.volume = 0.45;
   audio.play().then(() => { musicAudio = audio; }).catch(() => { musicAudio = null; _startSynthMusic(); });
 }
 
@@ -440,9 +407,7 @@ function playPop() {
   const ac = getAC();
   if (popBuffer) {
     const src = ac.createBufferSource();
-    src.buffer = popBuffer;
-    src.connect(ac.destination);
-    src.start();
+    src.buffer = popBuffer; src.connect(ac.destination); src.start();
     return;
   }
   const osc = ac.createOscillator(), g = ac.createGain();
@@ -474,19 +439,26 @@ const PLAT_H     = 22;
 const PLAT_COUNT = 7;
 const SPEED_X    = 4;
 const MAX_GAP    = 65;
+const BREAK_DELAY = 18;
 
 // ═══════════════════════════════════════════
 // PLATFORMS
 // ═══════════════════════════════════════════
 function makePlatform(x, y, type) {
-  return { x, y, w: PLAT_W, h: PLAT_H, type: type||'normal',
-    vx: (type==='move') ? (Math.random()>.5 ? 1.4 : -1.4) : 0,
-    broken: false, breakAnim: 0, alpha: 1 };
+  return {
+    x, y, w: PLAT_W, h: PLAT_H,
+    type: type || 'normal',
+    vx: (type === 'move') ? (Math.random() > .5 ? 1.4 : -1.4) : 0,
+    broken: false,
+    breakAnim: 0,
+    alpha: 1,
+    breakTimer: 0  
+  };
 }
 
 function generatePlatforms() {
   platforms = [];
-  platforms.push({ x:W/2-50, y:H-80, w:100, h:PLAT_H, type:'normal', vx:0, broken:false, breakAnim:0, alpha:1 });
+  platforms.push({ x:W/2-50, y:H-80, w:100, h:PLAT_H, type:'normal', vx:0, broken:false, breakAnim:0, alpha:1, breakTimer:0 });
   let lastY = H - 80;
   for (let i = 0; i < PLAT_COUNT; i++) { lastY -= 55 + Math.random()*55; spawnPlatformAt(lastY); }
 }
@@ -498,7 +470,7 @@ function spawnPlatformAt(y) {
   if (score > 300 && r > 0.75) type = 'move';
   if (score > 600 && r > 0.88) type = 'break';
   if (lastPlatform && lastPlatform.type === 'break' && type === 'break') type = 'normal';
-  if (lastPlatform && lastPlatform.type === 'move' && type === 'break') type = 'normal';
+  if (lastPlatform && lastPlatform.type === 'move'  && type === 'break') type = 'normal';
   platforms.push(makePlatform(Math.random() * (W - PLAT_W), y, type));
 }
 
@@ -515,11 +487,8 @@ function drawBg() {
     ctx.drawImage(bgImg, 0, 0, W, H);
   } else {
     const g = ctx.createRadialGradient(W/2, H*0.4, 0, W/2, H*0.4, H*0.85);
-    g.addColorStop(0,    '#ffcce5');
-    g.addColorStop(0.55, '#f9a8c9');
-    g.addColorStop(1,    '#f07eb0');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    g.addColorStop(0, '#ffcce5'); g.addColorStop(0.55, '#f9a8c9'); g.addColorStop(1, '#f07eb0');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   }
 }
 
@@ -617,40 +586,58 @@ function update() {
   }
 
   for (const p of platforms) {
-    if (p.type === 'move') { p.x += p.vx; if (p.x<0||p.x+p.w>W) p.vx*=-1; }
-    if (p.broken) { p.breakAnim+=0.07; p.alpha=Math.max(0,1-p.breakAnim); p.y+=3; }
+    if (p.type === 'move') {
+      p.x += p.vx;
+      if (p.x < 0 || p.x + p.w > W) p.vx *= -1;
+    }
+
+    if (p.breakTimer > 0) {
+      p.breakTimer++;
+      if (p.breakTimer > BREAK_DELAY) {
+        p.broken = true;
+        p.breakTimer = 0;
+      }
+    }
+
+    if (p.broken) {
+      p.breakAnim += 0.07;
+      p.alpha = Math.max(0, 1 - p.breakAnim);
+      p.y += 3;
+    }
   }
 
-  platforms = platforms.filter(p => p.y < H+40 && !(p.broken && p.breakAnim>=1));
+  platforms = platforms.filter(p => p.y < H + 40 && !(p.broken && p.breakAnim >= 1));
   const topY = Math.min(...platforms.map(p => p.y));
-  while (platforms.length < PLAT_COUNT+2) spawnPlatformAt(topY-(50+Math.random()*MAX_GAP));
+  while (platforms.length < PLAT_COUNT + 2) spawnPlatformAt(topY - (50 + Math.random() * MAX_GAP));
 
+  // Коллизии
   if (player.vy > 0) {
     for (const p of platforms) {
-      if (p.broken) continue;
-      if (player.x+PLAYER_W-6>p.x && player.x+6<p.x+p.w &&
-          player.y+PLAYER_H>p.y && player.y+PLAYER_H<p.y+p.h+player.vy+2) {
+      if (p.broken || p.breakTimer > 0) continue;
+
+      if (player.x + PLAYER_W - 6 > p.x && player.x + 6 < p.x + p.w &&
+          player.y + PLAYER_H > p.y && player.y + PLAYER_H < p.y + p.h + player.vy + 2) {
+
+        player.vy = JUMP_VEL;
+        playPop();
+       
         if (p.type === 'break') {
-  player.vy = JUMP_VEL; 
-  playPop();
-  p.broken = true;      
-} else {
-  player.vy = JUMP_VEL;
-  playPop();
-}
+          p.breakTimer = 1;
+        }
+
         break;
       }
     }
   }
 
-  if (player.y > H+20) endGame();
+  if (player.y > H + 20) endGame();
 }
 
 function render() {
   ctx.clearRect(0, 0, W, H);
   drawBg();
   for (const p of platforms) {
-    if (p.y>H+40||p.y<-40) continue;
+    if (p.y > H + 40 || p.y < -40) continue;
     drawPlatform(p);
   }
   drawPlayer();
@@ -695,7 +682,6 @@ document.addEventListener('keyup', e => {
   if (e.key==='ArrowRight'||e.key==='d') keys.right=false;
 });
 
-// Работа с масштабированием
 let touchTargetX = null;
 function getTouchCanvasX(clientX) {
   const r = canvas.getBoundingClientRect();
