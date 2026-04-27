@@ -630,8 +630,14 @@ function update() {
       if (p.broken) continue;
       if (player.x+PLAYER_W-6>p.x && player.x+6<p.x+p.w &&
           player.y+PLAYER_H>p.y && player.y+PLAYER_H<p.y+p.h+player.vy+2) {
-        if (p.type==='break') { p.broken=true; }
-        else { player.vy=JUMP_VEL; playPop(); }
+        if (p.type === 'break') {
+  player.vy = JUMP_VEL; 
+  playPop();
+  p.broken = true;      
+} else {
+  player.vy = JUMP_VEL;
+  playPop();
+}
         break;
       }
     }
