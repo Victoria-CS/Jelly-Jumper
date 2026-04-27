@@ -461,7 +461,7 @@ function generatePlatforms() {
   platforms.push({ x:W/2-50, y:H-80, w:100, h:PLAT_H, type:'normal', vx:0, broken:false, breakAnim:0, alpha:1, breakTimer:0 });
   let lastY = H - 80;
  while (lastY > 0) {
-    lastY -= 70 + Math.random() * MAX_GAP;
+    lastY -= 120 + Math.random() * MAX_GAP;
     spawnPlatformAt(lastY);
   }
 }
@@ -609,10 +609,10 @@ function update() {
     }
   }
 
-platforms = platforms.filter(p => p.y < H + 40 && p.y > -200 && !(p.broken && p.breakAnim >= 1));
+platforms = platforms.filter(p => p.y < H + 40 && p.y > -100 && !(p.broken && p.breakAnim >= 1));
   let topY = platforms.length > 0 ? Math.min(...platforms.map(p => p.y)) : 0;
- while (topY > -150) {
-    const newY = topY - (70 + Math.random() * MAX_GAP);
+ while (topY > -80) {
+    const newY = topY - (120 + Math.random() * MAX_GAP);
     spawnPlatformAt(newY);
     topY = newY;
   }
