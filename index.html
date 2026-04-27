@@ -438,7 +438,7 @@ const PLAT_W     = 100;
 const PLAT_H     = 22;
 const PLAT_COUNT = 5;
 const SPEED_X    = 4;
-const MAX_GAP    = 55;
+const MAX_GAP    = 85;
 const BREAK_DELAY = 18;
 
 // ═══════════════════════════════════════════
@@ -461,7 +461,7 @@ function generatePlatforms() {
   platforms.push({ x:W/2-50, y:H-80, w:100, h:PLAT_H, type:'normal', vx:0, broken:false, breakAnim:0, alpha:1, breakTimer:0 });
   let lastY = H - 80;
   while (lastY > - -100) {
-    lastY -= 50 + Math.random() * MAX_GAP;
+    lastY -= 70 + Math.random() * MAX_GAP;
     spawnPlatformAt(lastY);
   }
 }
@@ -612,7 +612,7 @@ function update() {
 platforms = platforms.filter(p => p.y < H + 40 && !(p.broken && p.breakAnim >= 1));
   let topY = platforms.length > 0 ? Math.min(...platforms.map(p => p.y)) : 0;
   while (topY > -300) {
-    const newY = topY - (50 + Math.random() * MAX_GAP);
+    const newY = topY - (70 + Math.random() * MAX_GAP);
     spawnPlatformAt(newY);
     topY = newY;
   }
