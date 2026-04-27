@@ -607,8 +607,10 @@ function update() {
   }
 
   platforms = platforms.filter(p => p.y < H + 40 && !(p.broken && p.breakAnim >= 1));
+  while (platforms.length < PLAT_COUNT + 2) {
   const topY = Math.min(...platforms.map(p => p.y));
-  while (platforms.length < PLAT_COUNT + 2) spawnPlatformAt(topY - (50 + Math.random() * MAX_GAP));
+  spawnPlatformAt(topY - (50 + Math.random() * MAX_GAP));
+}
 
   // Коллизии
   if (player.vy > 0) {
