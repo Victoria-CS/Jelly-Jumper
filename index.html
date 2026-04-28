@@ -468,7 +468,7 @@ const MAX_GAP      = 85;
 const BREAK_DELAY  = 18;
 const JB_W         = 38;
 const JB_H         = 38;
-const ROCKET_DURATION = 300;   
+const ROCKET_DURATION = 300;  
 const ROCKET_SPEED    = -13;   
 
 let platsSinceBean  = 0;
@@ -515,10 +515,10 @@ function spawnPlatformAt(y) {
   const px = Math.random() * (W - PLAT_W);
   platforms.push(makePlatform(px, y, type));
 
-  platsSinceBean++;
-  if (!beanActive && platsSinceBean >= nextBeanAt) {
+  if (!rocketMode) platsSinceBean++;
+  if (!beanActive && !rocketMode && platsSinceBean >= nextBeanAt) {
     jellybeans.push({
-      x: px + PLAT_W / 2 - JB_W / 2,
+      x: px + PLAT_W / 2 - JB_W / 2, 
       y: y - JB_H - 12,
       w: JB_W,
       h: JB_H,
@@ -527,7 +527,7 @@ function spawnPlatformAt(y) {
     });
     beanActive     = true;
     platsSinceBean = 0;
-    nextBeanAt     = 40 + Math.floor(Math.random() * 31); 
+    nextBeanAt     = 40 + Math.floor(Math.random() * 31);
   }
 }
 
@@ -623,7 +623,6 @@ function drawJellyBeans() {
     if (jellybeanImg.complete && jellybeanImg.naturalWidth) {
       ctx.drawImage(jellybeanImg, -jb.w/2, -jb.h/2, jb.w, jb.h);
     } else {
-      // Заглушка — блестящий джелли бин
       const gr = ctx.createRadialGradient(-4, -6, 2, 0, 0, 18);
       gr.addColorStop(0, '#ff9ecc');
       gr.addColorStop(1, '#e8176a');
@@ -757,15 +756,15 @@ function update() {
     player.x += player.vx;
   }
 
-  // ── Режим ракеты ──
   if (rocketMode) {
     player.vy = ROCKET_SPEED;   
     rocketTimer++;
     spawnFlame();
     if (rocketTimer >= ROCKET_DURATION) {
-      rocketMode  = false;
-      rocketTimer = 0;
-      player.vy   = JUMP_VEL;
+      rocketMode     = false;
+      rocketTimer    = 0;
+      player.vy      = JUMP_VEL;
+      platsSinceBean = 0;  
     }
   } else {
     player.vy += GRAVITY;
@@ -775,10 +774,8 @@ function update() {
 
   if (player.vx >  0.1) player.dir =  1;
   if (player.vx < -0.1) player.dir = -1;
-
   if (player.x + PLAYER_W < 0) player.x = W;
   if (player.x > W)             player.x = -PLAYER_W;
-
   const MID = H * 0.45;
   if (player.y < MID) {
     const diff = MID - player.y;
