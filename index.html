@@ -323,6 +323,8 @@ const blockImg      = loadImg('images/block.png');
 const blockMoveImg  = loadImg('images/block-move.png');
 const blockBreakImg = loadImg('images/block-break.png');
 const bgImg         = loadImg('images/bg.png');
+const jellybeanImg  = loadImg('images/jellybean.png');
+const rocketImg     = loadImg('images/rocket-panda.png');
 
 function getPlatformImg(type) {
   if (type === 'move'  && blockMoveImg.complete  && blockMoveImg.naturalWidth)  return blockMoveImg;
@@ -420,6 +422,26 @@ function playPop() {
   osc.start(ac.currentTime); osc.stop(ac.currentTime + 0.14);
 }
 
+function playRocketLaunch() {
+  const ac = getAC();
+  const osc = ac.createOscillator(), g = ac.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(160, ac.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1600, ac.currentTime + 0.3);
+  g.gain.setValueAtTime(0, ac.currentTime);
+  g.gain.linearRampToValueAtTime(0.28, ac.currentTime + 0.04);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.38);
+  osc.connect(g); g.connect(ac.destination);
+  osc.start(ac.currentTime); osc.stop(ac.currentTime + 0.42);
+  const osc2 = ac.createOscillator(), g2 = ac.createGain();
+  osc2.type = 'square'; osc2.frequency.value = 75;
+  g2.gain.setValueAtTime(0, ac.currentTime);
+  g2.gain.linearRampToValueAtTime(0.15, ac.currentTime + 0.08);
+  g2.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.52);
+  osc2.connect(g2); g2.connect(ac.destination);
+  osc2.start(ac.currentTime); osc2.stop(ac.currentTime + 0.56);
+}
+
 // ═══════════════════════════════════════════
 // GAME STATE
 // ═══════════════════════════════════════════
@@ -430,16 +452,28 @@ let platforms = [], player = {};
 let keys = { left: false, right: false };
 let animId;
 
-const GRAVITY    = 0.35;
-const JUMP_VEL   = -11;
-const PLAYER_W   = 90;
-const PLAYER_H   = 90;
-const PLAT_W     = 100;
-const PLAT_H     = 22;
-const PLAT_COUNT = 5;
-const SPEED_X    = 4;
-const MAX_GAP    = 85;
-const BREAK_DELAY = 18;
+let jellybeans     = [];
+let rocketMode     = false;
+let rocketTimer    = 0;
+let flameParticles = [];
+
+const GRAVITY      = 0.35;
+const JUMP_VEL     = -11;
+const PLAYER_W     = 90;
+const PLAYER_H     = 90;
+const PLAT_W       = 100;
+const PLAT_H       = 22;
+const SPEED_X      = 4;
+const MAX_GAP      = 85;
+const BREAK_DELAY  = 18;
+const JB_W         = 38;
+const JB_H         = 38;
+const ROCKET_DURATION = 300;   
+const ROCKET_SPEED    = -13;   
+
+let platsSinceBean  = 0;
+let nextBeanAt      = 40 + Math.floor(Math.random() * 31); 
+let beanActive      = false; 
 
 // ═══════════════════════════════════════════
 // PLATFORMS
@@ -452,15 +486,19 @@ function makePlatform(x, y, type) {
     broken: false,
     breakAnim: 0,
     alpha: 1,
-    breakTimer: 0  
+    breakTimer: 0
   };
 }
 
 function generatePlatforms() {
-  platforms = [];
+  platforms      = [];
+  jellybeans     = [];
+  platsSinceBean = 0;
+  beanActive     = false;
+  nextBeanAt     = 40 + Math.floor(Math.random() * 31);
   platforms.push({ x:W/2-50, y:H-80, w:100, h:PLAT_H, type:'normal', vx:0, broken:false, breakAnim:0, alpha:1, breakTimer:0 });
   let lastY = H - 80;
- while (lastY > 0) {
+  while (lastY > 0) {
     lastY -= 120 + Math.random() * MAX_GAP;
     spawnPlatformAt(lastY);
   }
@@ -474,12 +512,75 @@ function spawnPlatformAt(y) {
   if (score > 600 && r > 0.88) type = 'break';
   if (lastPlatform && lastPlatform.type === 'break' && type === 'break') type = 'normal';
   if (lastPlatform && lastPlatform.type === 'move'  && type === 'break') type = 'normal';
-  platforms.push(makePlatform(Math.random() * (W - PLAT_W), y, type));
+  const px = Math.random() * (W - PLAT_W);
+  platforms.push(makePlatform(px, y, type));
+
+  platsSinceBean++;
+  if (!beanActive && platsSinceBean >= nextBeanAt) {
+    jellybeans.push({
+      x: px + PLAT_W / 2 - JB_W / 2,
+      y: y - JB_H - 12,
+      w: JB_W,
+      h: JB_H,
+      collected: false,
+      bobPhase: Math.random() * Math.PI * 2
+    });
+    beanActive     = true;
+    platsSinceBean = 0;
+    nextBeanAt     = 40 + Math.floor(Math.random() * 31); 
+  }
 }
 
 function initPlayer() {
-  player  = { x:W/2-PLAYER_W/2, y:H-80-PLAYER_H, vx:0, vy:JUMP_VEL, dir:1 };
-  scrollY = 0; score = 0;
+  player         = { x:W/2-PLAYER_W/2, y:H-80-PLAYER_H, vx:0, vy:JUMP_VEL, dir:1 };
+  scrollY        = 0;
+  score          = 0;
+  jellybeans     = [];
+  flameParticles = [];
+  rocketMode     = false;
+  rocketTimer    = 0;
+  platsSinceBean = 0;
+  beanActive     = false;
+  nextBeanAt     = 40 + Math.floor(Math.random() * 31);
+}
+
+// ═══════════════════════════════════════════
+// FLAME PARTICLES
+// ═══════════════════════════════════════════
+function spawnFlame() {
+  for (let i = 0; i < 4; i++) {
+    flameParticles.push({
+      x:   player.x + PLAYER_W / 2 + (Math.random() - 0.5) * 16,
+      y:   player.y + PLAYER_H - 6,
+      vx:  (Math.random() - 0.5) * 2.5,
+      vy:  2.5 + Math.random() * 3.5,
+      life: 1,
+      size: 7 + Math.random() * 11,
+      hue:  8 + Math.floor(Math.random() * 38)  
+    });
+  }
+}
+
+function updateFlame() {
+  for (const p of flameParticles) {
+    p.x    += p.vx;
+    p.y    += p.vy;
+    p.life -= 0.055;
+    p.size *= 0.94;
+  }
+  flameParticles = flameParticles.filter(p => p.life > 0);
+}
+
+function drawFlame() {
+  for (const p of flameParticles) {
+    ctx.save();
+    ctx.globalAlpha = p.life * 0.88;
+    ctx.fillStyle   = `hsl(${p.hue}, 100%, ${38 + p.life * 32}%)`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -509,6 +610,30 @@ function drawPlatform(p) {
     ctx.beginPath(); ctx.roundRect(p.x+4, p.y+3, p.w-8, 5, 3); ctx.fill();
   }
   ctx.restore();
+}
+
+function drawJellyBeans() {
+  const t = performance.now() / 1000;
+  for (const jb of jellybeans) {
+    if (jb.collected) continue;
+    const bobY = Math.sin(t * 3 + jb.bobPhase) * 5;
+    ctx.save();
+    ctx.translate(jb.x + jb.w / 2, jb.y + jb.h / 2 + bobY);
+    ctx.rotate(Math.sin(t * 2 + jb.bobPhase) * 0.14);
+    if (jellybeanImg.complete && jellybeanImg.naturalWidth) {
+      ctx.drawImage(jellybeanImg, -jb.w/2, -jb.h/2, jb.w, jb.h);
+    } else {
+      // Заглушка — блестящий джелли бин
+      const gr = ctx.createRadialGradient(-4, -6, 2, 0, 0, 18);
+      gr.addColorStop(0, '#ff9ecc');
+      gr.addColorStop(1, '#e8176a');
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.ellipse(0, 0, 11, 17, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath(); ctx.ellipse(-3, -6, 4, 6, -0.3, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
 }
 
 function drawPlayer() {
@@ -543,6 +668,67 @@ function drawPlayer() {
   ctx.restore();
 }
 
+function drawRocketPlayer() {
+  ctx.save();
+  const wobble = Math.sin(rocketTimer * 0.18) * 5;
+  ctx.translate(player.x + PLAYER_W/2 + wobble, player.y + PLAYER_H/2);
+  if (rocketImg.complete && rocketImg.naturalWidth) {
+    ctx.drawImage(rocketImg, -PLAYER_W/2, -PLAYER_H/2, PLAYER_W, PLAYER_H);
+  } else {
+    ctx.fillStyle = '#e8176a';
+    ctx.beginPath();
+    ctx.moveTo(0, -42); ctx.lineTo(22, 18); ctx.lineTo(-22, 18); ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#c0104f';
+    ctx.beginPath();
+    ctx.moveTo(0, -42); ctx.lineTo(10, -16); ctx.lineTo(-10, -16); ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, -2, 12, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.ellipse(-4, -3, 3.2, 3.2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(4, -3, 3.2, 3.2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-3.2, -3.8, 1.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(4.8, -3.8, 1.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ff6699';
+    ctx.beginPath(); ctx.moveTo(-22,14); ctx.lineTo(-36,30); ctx.lineTo(-16,22); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(22,14);  ctx.lineTo(36,30);  ctx.lineTo(16,22);  ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.ellipse(0, 22, 9, 6, 0, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRocketBar() {
+  if (!rocketMode) return;
+  const barW = 150;
+  const barH = 13;
+  const x    = W/2 - barW/2;
+  const y    = 60;
+  const ratio = 1 - rocketTimer / ROCKET_DURATION;
+
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle   = '#2d1a26';
+  ctx.beginPath(); ctx.roundRect(x, y, barW, barH, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  if (ratio > 0) {
+    const rg = ctx.createLinearGradient(x, y, x + barW, y);
+    rg.addColorStop(0, '#ff5c8a');
+    rg.addColorStop(1, '#ffcc00');
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.roundRect(x, y, barW * ratio, barH, 7); ctx.fill();
+  }
+
+  ctx.font = '14px serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('🚀', x - 22, y + 11);
+
+  ctx.restore();
+}
+
 function drawHUD() {
   ctx.font = 'bold 24px Pacifico, cursive';
   ctx.textAlign = 'center';
@@ -571,8 +757,21 @@ function update() {
     player.x += player.vx;
   }
 
-  player.vy += GRAVITY;
-  player.y  += player.vy;
+  // ── Режим ракеты ──
+  if (rocketMode) {
+    player.vy = ROCKET_SPEED;   
+    rocketTimer++;
+    spawnFlame();
+    if (rocketTimer >= ROCKET_DURATION) {
+      rocketMode  = false;
+      rocketTimer = 0;
+      player.vy   = JUMP_VEL;
+    }
+  } else {
+    player.vy += GRAVITY;
+  }
+
+  player.y += player.vy;
 
   if (player.vx >  0.1) player.dir =  1;
   if (player.vx < -0.1) player.dir = -1;
@@ -584,9 +783,27 @@ function update() {
   if (player.y < MID) {
     const diff = MID - player.y;
     player.y = MID; scrollY += diff;
-    for (const p of platforms) p.y += diff;
+    for (const p  of platforms)  p.y  += diff;
+    for (const jb of jellybeans) jb.y += diff;
     score = Math.max(score, Math.round(scrollY / 4));
   }
+
+  for (const jb of jellybeans) {
+    if (jb.collected) continue;
+    if (player.x + PLAYER_W > jb.x && player.x < jb.x + jb.w &&
+        player.y + PLAYER_H  > jb.y && player.y < jb.y + jb.h) {
+      jb.collected   = true;
+      beanActive     = false; 
+      platsSinceBean = 0;
+      nextBeanAt     = 40 + Math.floor(Math.random() * 31);
+      rocketMode     = true;
+      rocketTimer    = 0;
+      playRocketLaunch();
+    }
+  }
+  const prevLen = jellybeans.length;
+  jellybeans = jellybeans.filter(jb => jb.y < H + 80 && !jb.collected);
+  if (jellybeans.length < prevLen) beanActive = false;
 
   for (const p of platforms) {
     if (p.type === 'move') {
@@ -597,7 +814,7 @@ function update() {
     if (p.breakTimer > 0) {
       p.breakTimer++;
       if (p.breakTimer > BREAK_DELAY) {
-        p.broken = true;
+        p.broken    = true;
         p.breakTimer = 0;
       }
     }
@@ -609,29 +826,25 @@ function update() {
     }
   }
 
-platforms = platforms.filter(p => p.y < H + 40 && p.y > -100 && !(p.broken && p.breakAnim >= 1));
-  let topY = platforms.length > 0 ? Math.min(...platforms.map(p => p.y)) : 0;
- while (topY > -80) {
+  platforms = platforms.filter(p => p.y < H + 40 && p.y > -100 && !(p.broken && p.breakAnim >= 1));
+  let topY  = platforms.length > 0 ? Math.min(...platforms.map(p => p.y)) : 0;
+  while (topY > -80) {
     const newY = topY - (120 + Math.random() * MAX_GAP);
     spawnPlatformAt(newY);
     topY = newY;
   }
 
-  // Коллизии
-  if (player.vy > 0) {
+  updateFlame();
+
+  // ── Коллизии с платформами 
+  if (!rocketMode && player.vy > 0) {
     for (const p of platforms) {
       if (p.broken || p.breakTimer > 0) continue;
-
       if (player.x + PLAYER_W - 6 > p.x && player.x + 6 < p.x + p.w &&
           player.y + PLAYER_H > p.y && player.y + PLAYER_H < p.y + p.h + player.vy + 2) {
-
         player.vy = JUMP_VEL;
         playPop();
-       
-        if (p.type === 'break') {
-          p.breakTimer = 1;
-        }
-
+        if (p.type === 'break') p.breakTimer = 1;
         break;
       }
     }
@@ -647,8 +860,15 @@ function render() {
     if (p.y > H + 40 || p.y < -40) continue;
     drawPlatform(p);
   }
-  drawPlayer();
+  drawJellyBeans();
+  drawFlame();
+  if (rocketMode) {
+    drawRocketPlayer();
+  } else {
+    drawPlayer();
+  }
   drawHUD();
+  drawRocketBar();
 }
 
 function loop() { update(); render(); animId = requestAnimationFrame(loop); }
