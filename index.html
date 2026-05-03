@@ -48,18 +48,36 @@
     pointer-events: none;
   }
 
-  #start-screen {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    pointer-events: all;
-    overflow: hidden;
-    background: radial-gradient(ellipse at 50% 40%, #ffcce5 0%, #f9a8c9 55%, #f07eb0 100%);
-    background-image: url('images/bg.png');
-    background-size: cover;
-    background-position: center;
-  }
+#start-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: all;
+  overflow: hidden;
+
+  background-image: url('images/start-screen.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+ .play-btn {
+  position: absolute;
+  bottom: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 95px;
+
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  font-size: 0;
+  box-shadow: none;
+}
 
   #start-screen::before {
     content: "";
@@ -244,23 +262,6 @@
     <div id="score-display" class="hidden">0</div>
 
     <div id="start-screen">
-      <div class="bubble-layer">
-        <div class="bubble pink b1"></div>
-        <div class="bubble blue b2"></div>
-        <div class="bubble pink b3"></div>
-        <div class="bubble blue b4"></div>
-        <div class="bubble pink b5"></div>
-        <div class="bubble blue b6"></div>
-        <div class="bubble pink b7"></div>
-        <div class="bubble blue b8"></div>
-      </div>
-      <div class="candy worm"></div>
-      <div class="candy bear"></div>
-      <div class="candy heart"></div>
-      <div class="logo-wrap">
-        <img src="images/logo.png" class="logo-img" alt="Jelly Jump Logo">
-      </div>
-      <p class="hint-text">Hold and move</p>
       <button class="play-btn" onclick="startGame()">PLAY</button>
     </div>
 
